@@ -8,6 +8,11 @@ extra-source-files:
 
 dependencies:
 - base >= 4.7 && < 5
+- hspec >= 2.8 && < 3
+- mtl >= 2.2 && < 3
+- megaparsec >= 9.2 && < 10
+- hspec-megaparsec >= 2.2 && < 3
+- containers >= 0.6 && < 1
 
 library:
   source-dirs: src
@@ -22,3 +27,4 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - haskix-hs
+    - hspec >= 2.8 && < 3
