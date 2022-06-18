@@ -1,3 +1,5 @@
 .stack-work/
+.vscode
 haskix-hs.cabal
 *~
+stack.yaml.lock
