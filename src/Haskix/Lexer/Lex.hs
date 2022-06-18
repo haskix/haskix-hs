@@ -239,7 +239,7 @@ dot =
   withPos True $ do
     void (char '.')
     fixity
-      (\v -> TkVarSymbol ('@' : v))
+      (\v -> TkVarSymbol ('.' : v))
       TkPrefixProj
       TkTightInfixProj
       (TkVarSymbol ".")
