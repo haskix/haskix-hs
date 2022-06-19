@@ -245,6 +245,17 @@ dot =
       (TkVarSymbol ".")
       (TkVarSymbol ".")
 
+bang :: Parser PreToken
+bang =
+  withPos True $ do
+    void (char '!')
+    fixity
+      (\v -> TkVarSymbol ('!' : v))
+      (TkVarSymbol "!")
+      (TkVarSymbol "!")
+      (TkVarSymbol "!")
+      TkSuffixBang
+
 symbol :: Parser PreToken
 symbol =
   withPos
@@ -307,6 +318,7 @@ start =
       singleCharToken '_' True TkUnderline,
       char '@' ~> at,
       char '.' ~> dot,
+      char '!' ~> bang,
       token (fromPred isSymbolChar) Set.empty ~> symbol,
       char '\n' ~> line
     ]
