@@ -1,7 +1,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Haskix.Lexer.Lex (initState, start, lex) where
+module Haskix.Lexer.Lex (lex) where
 
 import Control.Monad.State
 import Data.Char
@@ -31,11 +31,17 @@ trailingSpace close =
   (hspace1 >> modify (\s -> s {lsAfterClose = False}))
     <|> modify (\s -> s {lsAfterClose = close})
 
+getPos :: Parser Position
+getPos = do
+  off <- getOffset
+  pos <- getSourcePos
+  return Position {posOffset = off, posSource = pos}
+
 withPos :: Bool -> Parser TokenKind -> Parser PreToken
 withPos close tk = do
-  pos1 <- getOffset
+  pos1 <- getPos
   tok <- tk
-  pos2 <- getOffset
+  pos2 <- getPos
   trailingSpace close
   return
     ( WithOffset
@@ -65,6 +71,7 @@ name =
           "if" -> TkIf
           "in" -> TkIn
           "infix" -> TkInfix
+          "instance" -> TkInstance
           "let" -> TkLet
           "module" -> TkModule
           "newtype" -> TkNewtype
@@ -151,14 +158,14 @@ stringLit =
 
 maybeLineComment :: Parser PreToken
 maybeLineComment = do
-  begin <- getOffset
+  begin <- getPos
   str1 <- takeWhileP Nothing (== '-')
 
   ( do
       void (char ' ')
       typ <- takeWhileP (Just "prefix") (/= ' ')
       body <- takeWhileP (Just "body") (/= '\n')
-      pos2 <- getOffset
+      pos2 <- getPos
       modify (\s -> s {lsAfterClose = False})
       return
         ( WithOffset
@@ -169,7 +176,7 @@ maybeLineComment = do
     )
     <|> ( do
             rest <- takeWhileP (Just "symbol body") isSymbolChar
-            pos2 <- getOffset
+            pos2 <- getPos
             trailingSpace True
             return
               ( WithOffset
@@ -314,7 +321,7 @@ start =
       singleCharToken '[' True TkLeftBracket,
       singleCharToken ']' True TkRightBracket,
       singleCharToken ';' False TkSemicolon,
-      singleCharToken ',' False TkColon,
+      singleCharToken ',' False TkComma,
       singleCharToken '_' True TkUnderline,
       char '@' ~> at,
       char '.' ~> dot,

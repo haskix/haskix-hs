@@ -1,15 +1,23 @@
 module Haskix.Haskix.Token where
 
+import Text.Megaparsec.Pos (SourcePos)
+
 data IndentChange = IndentChange
   { icFrom, icTo :: Int
   }
-  deriving (Eq, Show)
+  deriving (Eq, Show, Ord)
+
+data Position = Position
+  { posOffset :: Int,
+    posSource :: SourcePos
+  }
+  deriving (Eq, Show, Ord)
 
 data WithOffset a = WithOffset
   { woVal :: a,
-    woOffset :: Maybe (Int, Int)
+    woOffset :: Maybe (Position, Position)
   }
-  deriving (Eq, Show)
+  deriving (Eq, Show, Ord)
 
 type PreToken = WithOffset PreTokenKind
 
@@ -18,7 +26,7 @@ data PreTokenKind
   | PtkDedent IndentChange
   | PtkEol Int
   | PtkToken TokenKind
-  deriving (Eq, Show)
+  deriving (Eq, Show, Ord)
 
 type Token = WithOffset TokenKind
 
@@ -27,7 +35,7 @@ data IntBase
   | IbOct
   | IbDec
   | IbHex
-  deriving (Eq, Show)
+  deriving (Eq, Show, Ord)
 
 data TokenKind
   = TkBlock
@@ -42,6 +50,7 @@ data TokenKind
   | TkIf
   | TkIn
   | TkInfix
+  | TkInstance
   | TkLet
   | TkModule
   | TkNewtype
@@ -126,4 +135,4 @@ data TokenKind
     TkUnderline
   | -- | *
     TkStar
-  deriving (Eq, Show)
+  deriving (Eq, Show, Ord)
