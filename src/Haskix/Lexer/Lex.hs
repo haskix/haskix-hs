@@ -1,7 +1,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Haskix.Lexer.Lex (lex) where
+module Haskix.Lexer.Lex (lex, initState, run) where
 
 import Control.Monad.State
 import Data.Char
@@ -256,7 +256,7 @@ fixity normal prefix tightInfix infixOp suffix =
     afterClose <- gets lsAfterClose
     choice
       [ space1 ~> return (if afterClose then suffix else infixOp),
-        symbolChar
+        token (\c -> if isSymbolChar c then Just () else Nothing) Set.empty
           ~> ( normal <$> takeWhileP (Just "symbol") isSymbolChar
              ),
         return (if afterClose then tightInfix else prefix)
