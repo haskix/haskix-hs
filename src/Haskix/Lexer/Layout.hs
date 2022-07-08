@@ -11,32 +11,38 @@ generate g =
       woOffset = Nothing
     }
 
+leftBrace = generate TkLeftBrace
+
+rightBrace = generate TkRightBrace
+
+semicolon = generate TkSemicolon
+
 deciding :: StateFun -> [PreToken] -> [Token]
 deciding _ [] = error "layout: Unexpected EOF"
 deciding f pt@(WithOffset {woVal = ptk, woOffset = off} : xs) =
   case ptk of
-    PtkIndent ic -> generate TkLeftBrace : implicit ic f xs
-    PtkEol _ -> generate TkLeftBrace : generate TkRightBrace : generate TkSemicolon : f xs
+    PtkIndent ic -> leftBrace : implicit ic f xs
+    PtkEol _ -> leftBrace : rightBrace : semicolon : f xs
     PtkToken t ->
       WithOffset {woVal = t, woOffset = off} :
       if t == TkLeftBrace
         then explicit 1 f xs
         else deciding f xs
-    PtkDedent ic -> generate TkLeftBrace : generate TkRightBrace : generate TkSemicolon : f pt
+    PtkDedent ic -> leftBrace : rightBrace : semicolon : f pt
 
 decidingIf :: StateFun -> [PreToken] -> [Token]
 decidingIf _ [] = error "layout: Unexpected EOF"
 decidingIf f pt@(WithOffset {woVal = ptk, woOffset = off} : xs) =
   case ptk of
-    PtkIndent ic -> generate TkLeftBrace : implicit ic f xs
-    PtkDedent ic -> generate TkLeftBrace : generate TkRightBrace : f pt
+    PtkIndent ic -> leftBrace : implicit ic f xs
+    PtkDedent ic -> leftBrace : rightBrace : f pt
     PtkToken t ->
       WithOffset {woVal = t, woOffset = off} :
       case t of
         TkInlineComment _ _ -> decidingIf f xs
         TkLeftBrace -> explicit 1 f xs
         _ -> f xs
-    PtkEol _ -> generate TkLeftBrace : generate TkRightBrace : f xs
+    PtkEol _ -> leftBrace : rightBrace : f xs
 
 isDeciding :: TokenKind -> Bool
 isDeciding x = x == TkWith || x == TkWhere || x == TkOf || x == TkUsing || x == TkDo
@@ -45,12 +51,12 @@ implicit :: IndentChange -> StateFun -> [PreToken] -> [Token]
 implicit _ _ [] = []
 implicit ic f (WithOffset {woVal = (PtkEol n)} : xs) =
   if n == icTo ic
-    then generate TkSemicolon : implicit ic f xs
+    then semicolon : implicit ic f xs
     else implicit ic f xs
 implicit ic f (WithOffset {woVal = (PtkIndent new)} : xs) = implicit ic f xs
 implicit ic f pt@(WithOffset {woVal = PtkDedent new} : xs)
-  | icTo new < icFrom ic = generate TkRightBrace : generate TkSemicolon : f pt
-  | icTo new < icTo ic = generate TkRightBrace : generate TkSemicolon : f xs
+  | icTo new < icFrom ic = semicolon : rightBrace : semicolon : f pt
+  | icTo new < icTo ic = semicolon : rightBrace : semicolon : f xs
   | otherwise = implicit ic f xs
 implicit ic f (WithOffset {woVal = PtkToken t, woOffset = off} : xs) =
   WithOffset {woVal = t, woOffset = off} : case t of
