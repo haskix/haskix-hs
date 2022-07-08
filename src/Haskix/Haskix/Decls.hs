@@ -24,11 +24,12 @@ type Deriving pass = [LDerivingClause pass]
 type ConDeclADTDetails pass = ConDetails Void (LType pass) (XRec pass [LConDeclField pass])
 
 data ConDecl pass = ConDeclADT
-  { conAttrib :: LAttrib pass,
+  { conAttrib :: LAttribs pass,
     conVis :: Maybe Visibility,
     conName :: LIdP pass,
     conForall :: Bool,
     conExTv :: [LTyVarBndr Specificity pass],
+    conCtxt :: Maybe (LContext pass),
     conArgs :: ConDeclADTDetails pass
   }
 
@@ -43,28 +44,28 @@ data DataCon pass
 deriving instance Show (DataCon HsixPs)
 
 data DataDefn pass = DataDefn
-  { ddKindSig :: Maybe (LKind pass),
-    ddCon :: DataCon pass,
-    ddDerivs :: [Deriving pass]
+  { ddCon :: DataCon pass,
+    ddDerivs :: Deriving pass
   }
 
 deriving instance Show (DataDefn HsixPs)
 
 data TyClDecl pass
   = SynDecl
-      { tcdAttrib :: LAttrib pass,
+      { tcdAttrib :: LAttribs pass,
         tcdLName :: LIdP pass,
         tcdTyVars :: LQTyVars pass,
         tcdRHS :: LType pass
       }
   | DataDecl
-      { tcdAttrib :: LAttrib pass,
+      { tcdAttrib :: LAttribs pass,
         tcdLName :: LIdP pass,
         tcdTyVars :: LQTyVars pass,
         tcdDataDefn :: DataDefn pass
       }
   | ClassDecl
-      { tcdCtxt :: Maybe [LContext pass],
+      { tcdAttrib :: LAttribs pass,
+        tcdCtxt :: Maybe (LContext pass),
         tcdLName :: LIdP pass,
         tcdTyVars :: LQTyVars pass,
         tcdSigs :: [LSig pass],
@@ -74,14 +75,14 @@ data TyClDecl pass
 deriving instance Show (TyClDecl HsixPs)
 
 data ClsInstDecl pass = ClsInstDecl
-  { cidPolyTy :: [LSigType pass],
+  { cidPolyTy :: LSigType pass,
     cidBinds :: LBinds pass,
     cidSigs :: [LSig pass]
   }
 
 deriving instance Show (ClsInstDecl HsixPs)
 
-newtype InstDecl pass = ClsIndtD
+newtype InstDecl pass = ClsInstD
   { cidInst :: ClsInstDecl pass
   }
 
@@ -137,6 +138,7 @@ data Decl pass
   | ModD (Maybe Visibility) (ModDecl pass)
   | OpenD (Maybe Visibility) (OpenDecl pass)
   | ValD (Bind pass)
+  | SigD (Sig pass)
   | PrecGrpD (Maybe Visibility) (PrecGrpDecl pass)
   | BlockD (LAttribs pass) (Maybe Visibility) [Decl pass]
 

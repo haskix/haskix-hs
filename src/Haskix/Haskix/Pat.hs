@@ -50,6 +50,13 @@ data Pat pass
       }
   | LitPat (Lit pass)
 
+isVarPatRec :: Pat a -> Bool
+isVarPatRec p =
+  case p of
+    VarPat _ -> True
+    ParPat (XRec p) -> isVarPatRec p
+    _ -> False
+
 deriving instance Show (Pat HsixPs)
 
 type LPat pass = XRec pass (Pat pass)

@@ -3,7 +3,7 @@
 module Haskix.Haskix.Attrib where
 
 import {-# SOURCE #-} Haskix.Haskix.Expr
-import Haskix.Haskix.Exts
+import Haskix.Haskix.Exts (HsixPs, XRec)
 
 data Attrib pass = Attrib
   { attrName :: String,

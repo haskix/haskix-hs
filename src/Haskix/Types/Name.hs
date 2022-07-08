@@ -13,3 +13,10 @@ data Name = Name
     nOcc :: OccName
   }
   deriving (Eq, Show)
+
+mkBuiltInName :: String -> [String] -> Name
+mkBuiltInName name path =
+  Name
+    { nSort = External (Module {flake = "HaskixCore", path = path}),
+      nOcc = OccName name
+    }

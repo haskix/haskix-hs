@@ -110,6 +110,10 @@ data ArithSeqInfo id
 
 deriving instance Show (ArithSeqInfo HsixPs)
 
+newtype TupleArg pass = Present (LExpr pass)
+
+deriving instance Show (TupleArg HsixPs)
+
 data Expr pass
   = Var (LIdP pass)
   | UnboundVar OccName
@@ -123,6 +127,7 @@ data Expr pass
   | Par (LExpr pass)
   | SectionL (LExpr pass) (LExpr pass)
   | SectionR (LExpr pass) (LExpr pass)
+  | ExplicitTuple [TupleArg pass]
   | Case (LExpr pass) (MatchGroup pass (LExpr pass))
   | If (LExpr pass) (LExpr pass) (LExpr pass)
   | MultiIf [LGRHS pass (LExpr pass)]
@@ -135,7 +140,7 @@ data Expr pass
       }
   | RecordUpd
       { rupdExpr :: LExpr pass,
-        rupdFlds :: Either [LRecUpdField pass] [LRecUpdProj pass]
+        rupdFlds :: [LRecUpdProj pass]
       }
   | GetField
       { gfExpr :: LExpr pass,

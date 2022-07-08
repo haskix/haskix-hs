@@ -30,7 +30,13 @@ type family NoHsixTc (p :: Type)
 type instance NoHsixTc (HaskixPass p) = HaskixPass (NoHsixTcPass p)
 
 newtype XRec pass a = XRec a
-  deriving (Eq, Show)
+  deriving (Eq)
+
+unXRec :: XRec p a -> a
+unXRec (XRec v) = v
+
+instance Show a => Show (XRec pass a) where
+  show (XRec a) = show a
 
 type family IdHsixP (p :: Pass) where
   IdHsixP 'Parsed = RdrName

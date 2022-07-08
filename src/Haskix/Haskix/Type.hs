@@ -31,18 +31,19 @@ type Context pass = [LType pass]
 
 type LContext pass = XRec pass (Context pass)
 
-data FieldOcc pass = FieldOcc
-  { foAttr :: LAttribs pass,
-    foVis :: Maybe Visibility,
-    foLabal :: XRec pass OccName
+newtype FieldOcc pass = FieldOcc
+  { foLabel :: XRec pass OccName
   }
 
 deriving instance Show (FieldOcc HsixPs)
 
 type LFieldOcc pass = XRec pass (FieldOcc pass)
 
-newtype ConDeclField pass = ConDeclField
-  { cd_fld_names :: [LFieldOcc pass]
+data ConDeclField pass = ConDeclField
+  { cdFldAttr :: LAttribs pass,
+    cdFldVis :: Maybe Visibility,
+    cdFldNames :: [LFieldOcc pass],
+    cdFldType :: LType pass
   }
 
 deriving instance Show (ConDeclField HsixPs)
@@ -62,9 +63,10 @@ data Type pass
   | AppTy (LType pass) (LType pass)
   | AppKindTy (LType pass) (LKind pass)
   | FunTy (LType pass) (LType pass)
+  | ListTy (LType pass)
   | TupleTy [LType pass]
   | ParTy (LType pass)
-  | StarTy Bool
+  | StarTy
   | KindSig (LType pass) (LKind pass)
   | RecTy [LConDeclField pass]
 
@@ -77,7 +79,7 @@ type Kind pass = Type pass
 type LKind pass = XRec pass (Kind pass)
 
 newtype LQTyVars pass = LQTyVars
-  { qExplicit :: LTyVarBndr () pass
+  { qExplicit :: [LTyVarBndr () pass]
   }
 
 deriving instance Show (LQTyVars HsixPs)
@@ -85,6 +87,7 @@ deriving instance Show (LQTyVars HsixPs)
 data ConDetails tyarg arg rec
   = PrefixCon [tyarg] [arg]
   | RecCon rec
+  | InfixCon arg arg
 
 deriving instance (Show tyarg, Show arg, Show rec) => Show (ConDetails tyarg arg rec)
 
