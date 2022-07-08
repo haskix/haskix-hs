@@ -13,6 +13,7 @@ dependencies:
 - megaparsec >= 9.2 && < 10
 - hspec-megaparsec >= 2.2 && < 3
 - containers >= 0.6 && < 1
+- string-interpolate >= 0.3 && < 1
 
 default-extensions:
 - DataKinds
