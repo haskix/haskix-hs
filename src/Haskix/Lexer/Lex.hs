@@ -9,7 +9,9 @@ import Data.List (takeWhile)
 import Data.Maybe (fromMaybe)
 import qualified Data.Set as Set
 import Data.Void (Void)
+import Haskix.Haskix.Lit
 import Haskix.Haskix.Token
+import Numeric
 import Text.Megaparsec hiding (State)
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
@@ -83,6 +85,7 @@ name =
           "self" -> TkSelf
           "super" -> TkSuper
           "type" -> TkType
+          "then" -> TkThen
           "using" -> TkUsing
           "where" -> TkWhere
           "with" -> TkWith
@@ -100,20 +103,29 @@ intWithBase =
   withPos True $ do
     void (char '0')
 
-    let int :: Char -> IntBase -> (Char -> Bool) -> Parser TokenKind
-        int prefix base digit =
+    let int :: Char -> (String -> Integer) -> (Char -> Bool) -> Parser TokenKind
+        int prefix reader digit =
           do
-            void (char prefix)
+            pref <- char' prefix
             str <- takeWhile1P (Just "digits") digit
             return
-              TkInteger {tkIBase = Just base, tkIVal = str}
+              ( TkInteger
+                  IL
+                    { ilVal = reader str,
+                      ilText = '0' : pref : str,
+                      ilNeg = False
+                    }
+              )
 
     choice
-      [ int 'b' IbBin (\x -> x == '0' || x == '1'),
-        int 'o' IbOct isOctDigit,
-        int 'd' IbDec isDigit,
-        int 'x' IbHex isHexDigit
+      [ int 'b' readBin (\x -> x == '0' || x == '1'),
+        int 'o' (fst . head . readOct) isOctDigit,
+        int 'd' read isDigit,
+        int 'x' (fst . head . readHex) isHexDigit
       ]
+  where
+    readBin :: String -> Integer
+    readBin = foldl (\acc v -> acc * 2 + (if v == '0' then 0 else 1)) 0
 
 number :: Parser PreToken
 number =
@@ -121,15 +133,35 @@ number =
     (dot, base) <- getBase
 
     ( do
-        void (char' 'e')
+        e <- char' 'e'
         exp <- takeWhile1P (Just "Rational exp") isDigit
         return
-          TkRational {tkRBase = base, tkRExp = Just exp}
+          ( TkRational
+              ( let text = base ++ (e : exp)
+                 in FL
+                      { flVal = (fst . head . readFloat) text,
+                        flText = text,
+                        flNeg = False
+                      }
+              )
+          )
       )
       <|> return
         ( if dot
-            then TkRational {tkRBase = base, tkRExp = Nothing}
-            else TkInteger {tkIBase = Nothing, tkIVal = base}
+            then
+              TkRational
+                FL
+                  { flVal = (fst . head . readFloat) base,
+                    flText = base,
+                    flNeg = False
+                  }
+            else
+              TkInteger
+                IL
+                  { ilVal = read base,
+                    ilText = base,
+                    ilNeg = False
+                  }
         )
   where
     getBase :: Parser (Bool, String)
@@ -246,7 +278,11 @@ dot =
   withPos True $ do
     void (char '.')
     fixity
-      (\v -> TkVarSymbol ('.' : v))
+      ( \v ->
+          case '.' : v of
+            ".." -> TkDotDot
+            s -> TkVarSymbol s
+      )
       TkPrefixProj
       TkTightInfixProj
       (TkVarSymbol ".")
@@ -263,20 +299,32 @@ bang =
       (TkVarSymbol "!")
       TkSuffixBang
 
+minus :: Parser PreToken
+minus =
+  withPos True $ do
+    void (char '-')
+    fixity
+      ( \v ->
+          case '-' : v of
+            "->" -> TkArrow
+            v -> TkVarSymbol v
+      )
+      TkPrefixMinus
+      (TkVarSymbol "-")
+      (TkVarSymbol "-")
+      (TkVarSymbol "-")
+
 symbol :: Parser PreToken
 symbol =
   withPos
     True
     ( ( \case
-          "->" -> TkArrow
           "=>" -> TkFatArrow
-          "::" -> TkVarSymbol "::"
           ":" -> TkColon
           "=" -> TkEqual
           "\\" -> TkBackslash
           "<-" -> TkLeftArrow
           "|" -> TkBar
-          ".." -> TkDotDot
           "*" -> TkStar
           v@(':' : _) -> TkConstructorSymbol v
           v -> TkVarSymbol v
@@ -314,18 +362,20 @@ start =
       string "{-@" ~> attrib,
       string "{-" ~> blockComment,
       string "@-}" ~> constToken "@-}" False TkCloseAttr,
-      singleCharToken '{' True TkLeftBrace,
+      singleCharToken '{' False TkLeftBrace,
       singleCharToken '}' True TkRightBrace,
-      singleCharToken '(' True TkLeftParen,
+      singleCharToken '(' False TkLeftParen,
       singleCharToken ')' True TkRightParen,
-      singleCharToken '[' True TkLeftBracket,
+      singleCharToken '[' False TkLeftBracket,
       singleCharToken ']' True TkRightBracket,
       singleCharToken ';' False TkSemicolon,
       singleCharToken ',' False TkComma,
+      singleCharToken '`' True TkBacktick,
       singleCharToken '_' True TkUnderline,
       char '@' ~> at,
       char '.' ~> dot,
       char '!' ~> bang,
+      char '-' ~> minus,
       token (fromPred isSymbolChar) Set.empty ~> symbol,
       char '\n' ~> line
     ]

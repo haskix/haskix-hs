@@ -1,5 +1,6 @@
 module Haskix.Haskix.Token where
 
+import Haskix.Haskix.Lit (FractionalLit, IntegralLit)
 import Text.Megaparsec.Pos (SourcePos)
 
 data IndentChange = IndentChange
@@ -30,13 +31,6 @@ data PreTokenKind
 
 type Token = WithOffset TokenKind
 
-data IntBase
-  = IbBin
-  | IbOct
-  | IbDec
-  | IbHex
-  deriving (Eq, Show, Ord)
-
 data TokenKind
   = TkBlock
   | TkCase
@@ -61,6 +55,7 @@ data TokenKind
   | TkRecord
   | TkSelf
   | TkSuper
+  | TkThen
   | TkType
   | TkUsing
   | TkWhere
@@ -77,14 +72,8 @@ data TokenKind
   | TkConstructorSymbol String
   | TkChar Char
   | TkString String
-  | TkInteger
-      { tkIBase :: Maybe IntBase,
-        tkIVal :: String
-      }
-  | TkRational
-      { tkRBase :: String,
-        tkRExp :: Maybe String
-      }
+  | TkInteger IntegralLit
+  | TkRational FractionalLit
   | TkBlockComment
       { tkBcPrefix :: Maybe String,
         tkBcContent :: String
@@ -135,4 +124,6 @@ data TokenKind
     TkUnderline
   | -- | *
     TkStar
+  | -- | `
+    TkBacktick
   deriving (Eq, Show, Ord)
